@@ -7,10 +7,15 @@
 in vec3 a_Position;  // float position 3개
 in vec3 a_Velocity;	 // float velocity 3개
 in float a_EmitTime; // float emittime 1개
+in float a_LifeTime; // float lifetime 1개
+in float a_P;		 // float period 1개
+in float a_A;		 // float amp 1개
 
 uniform float u_Time; // 누적시간
 
-const vec3 c_Gravity = vec3(0, -2.8, 0); // 중력 가속도
+//const vec3 c_Gravity = vec3(0, -2.8, 0); // 중력 가속도
+const vec3 c_Gravity = vec3(0, 0, 0); 
+
 
 // uniform: 파이프라인 단위의 입력 -> glDrawArrays가 호출되고 버텍스가 다 처리될 때 까지의 단위
 //uniform float u_Scale; 
@@ -29,8 +34,10 @@ void main()
 	//temp = temp + u_Position;
 
 	float newTime = u_Time - a_EmitTime; // 누적시간을 계산해서
+	
 
 	vec3 newPos = a_Position;
+	
 
 	// emit이 안 됐을 경우
 	if (newTime < 0.0) // 누적시간이 음수면 화면밖으로 좌표를 날려서 생성이 안된것처럼 보이게(컬링)
@@ -39,15 +46,19 @@ void main()
 	}
 	else // emit time이 됐을 경우
 	{
+		newTime = mod(newTime, a_LifeTime); // lifetime마다 반복되도록 -> 음수가 되면 이상하게 될 가능성 있으므로 else에 넣어줌
+		newPos = newPos + vec3(newTime, 0, 0); // x는 newTime에 따라 움직임
+		newPos.y = newPos.y + (a_A * newTime) * sin(newTime * 3.14 * 2 * a_P); // 폭은 sin함수의 바깥,주기(a_P)는 sin함수의 인자로 곱해줘야함
+		// a_A * newTime : 시간이 갈수록 폭이 점점 넓어지게 -> 퍼지는 효과
 		// 시간에 따른 vertex의 position 계산 가능
 		//float t = u_Time;
 		//float tt = u_Time*u_Time;
 		//newPos = newPos + t * a_Velocity + 0.5 * c_Gravity * tt;
 
 		// 파티클 별로 누적시간 쓸거라 아래처럼 수정
-		float t = newTime;
-		float tt = newTime*newTime;
-		newPos = newPos + t * a_Velocity + 0.5 * c_Gravity * tt;
+		//float t = newTime;
+		//float tt = newTime*newTime;
+		//newPos = newPos + t * a_Velocity + 0.5 * c_Gravity * tt;
 	}
 
 	
