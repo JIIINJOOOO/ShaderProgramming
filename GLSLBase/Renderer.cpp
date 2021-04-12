@@ -26,7 +26,7 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 
 	//Load shaders -> 여기에 쉐이더프로그램 ID 들어감
 	m_SolidRectShader = CompileShaders("./Shaders/SolidRect.vs", "./Shaders/SolidRect.fs");
-	
+	m_FSSandboxShader = CompileShaders("./Shaders/FSSandbox.vs", "./Shaders/FSSandbox.fs");
 	//Create VBOs
 	CreateVertexBufferObjects();
 
@@ -66,8 +66,24 @@ void Renderer::Initialize(int windowSizeX, int windowSizeY)
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBO1);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(tempVertices1), tempVertices1, GL_STATIC_DRAW); // GPU 메모리에 VBO ID에 해당하는 데이터가 GPU메모리에 할당됨
 
+	// box 
+	float sizeRect = 0.5f;
+	float tempVertices2[] = { // 시계방향으로 넣어준다
+		-sizeRect,-sizeRect,0.f, //1 왼쪽 아래
+		-sizeRect,sizeRect,0.f, //2 왼쪽 위
+		sizeRect,sizeRect,0.f, //3 오른쪽 위
+		-sizeRect,-sizeRect,0.f, // 1 왼쪽 아래
+		sizeRect,sizeRect,0.f, // 2 오른쪽 위
+		sizeRect,-sizeRect,0.f // 3 오른쪽 아래
+	}; // 사각형 그릴것이기 때문에 vertex 6개 필요
+	glGenBuffers(1, &m_VBOFSSandBox); // 2라는 ID -> 앞으로는 2로 접근함
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFSSandBox);
+	// tempVertices2는 동적할당한 것이 아니기 때문에 sizeof 해도 사이즈 나오지만
+	// 동적할당 했을 경우에는 포인터 크기가 나오기 때문에 주의
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tempVertices2), tempVertices2, GL_STATIC_DRAW); // GPU 메모리에 VBO ID에 해당하는 데이터가 GPU메모리에 할당됨
+
 	//Create Particle
-	CreateParticle(1000);
+	CreateParticle(10000);
 }
 
 void Renderer::CreateVertexBufferObjects()
@@ -262,7 +278,7 @@ unsigned char * Renderer::loadBMPRaw(const char * imagepath, unsigned int& outWi
 
 void Renderer::CreateParticle(int count)
 {
-	int floatCount = count * (3 + 3 + 1 + 1 + 1 + 1)/*vertex position float 3개, vertex 속도 float 3개, emitTime 1개, 랜덤 lifeTime1개, 주기1개, 폭1개
+	int floatCount = count * (3 + 3 + 1 + 1 + 1 + 1 + 1 + 4)/*vertex position float 3개, vertex 속도 float 3개, emitTime 1개, 랜덤 lifeTime1개, 주기1개, 폭1개, value(매개변수) 1개, color(rgba): float 4개
 													->하나의 vertex가 가진 정보가 늘어날 뿐 vertex count는 안늘어남*/
 		* 3 * 2;
 	float* particleVertices = new float[floatCount];
@@ -283,23 +299,32 @@ void Renderer::CreateParticle(int count)
 		float randomValueVZ = 0.f;
 		// 파티클 생성 시작 시간
 		float randomEmitTime = 0.f;
-		float randomLifeTime = 0.f;
+		float randomLifeTime = 2.f;
 		//float randomLifeTime = 0.f;
 		float randomPeriod = 1.f; // 한주기 = 2PI 기준을 1로 둠
 		float randomAmp = 1.f; // 진폭
+		float randValue = 0.f;
+		float randR = 0.f;
+		float randG = 0.f;
+		float randB = 0.f;
+		float randA = 0.f;
 
 
 		//randomValueX = ((float)rand() / (float)RAND_MAX - 0.5f) * 2.f; // -1~1
 		//randomValueY = ((float)rand() / (float)RAND_MAX - 0.5f) * 2.f; // -1~1
 		//randomValueZ = 0.f;
-		//randomValueVX = ((float)rand() / (float)RAND_MAX - 0.5f) * 2.f; // -1~1
-		//randomValueVY = ((float)rand() / (float)RAND_MAX - 0.5f) * 2.f; // -1~1
-		//randomValueVZ = 0.f;
+		randomValueVX = ((float)rand() / (float)RAND_MAX - 0.5f) * 0.1f; // -1~1
+		randomValueVY = ((float)rand() / (float)RAND_MAX - 0.5f) * 0.1f; // -1~1
+		randomValueVZ = 0.f;
 		randomEmitTime = ((float)rand() / (float)RAND_MAX) * 10.f; // 0~10초사이 왔다갔다 하도록
-		randomLifeTime = ((float)rand() / (float)RAND_MAX) * 2.f;
-		randomPeriod = ((float)rand() / (float)RAND_MAX) * 10.f + 1;  // 1~11
-		randomAmp = ((float)rand() / (float)RAND_MAX) * 0.4f - 0.2f; // 음수도 나오도록
-
+		randomLifeTime = ((float)rand() / (float)RAND_MAX) * 0.5f;
+		randomPeriod = ((float)rand() / (float)RAND_MAX) * 10.f + 1.f;  // 1~11
+		randomAmp = ((float)rand() / (float)RAND_MAX) * 0.02f - 0.01f; // 음수도 나오도록
+		randValue = ((float)rand() / (float)RAND_MAX);
+		randR = ((float)rand() / (float)RAND_MAX); // 컬러: 0~1 사이 랜덤한값
+		randG = ((float)rand() / (float)RAND_MAX); // 컬러: 0~1 사이 랜덤한값
+		randB = ((float)rand() / (float)RAND_MAX); // 컬러: 0~1 사이 랜덤한값
+		randA = ((float)rand() / (float)RAND_MAX); // 컬러: 0~1 사이 랜덤한값
 
 
 		// 삼각형 두개가 하나의 사각형을 이루도록
@@ -330,6 +355,21 @@ void Renderer::CreateParticle(int count)
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
 		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
+		index++;
 
 
 		//v1 (오른쪽 아래)
@@ -358,6 +398,21 @@ void Renderer::CreateParticle(int count)
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
 		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
+		index++;
 
 		//v2 (오른쪽 위)
 		particleVertices[index] = particleSize / 2.f + randomValueX;
@@ -384,6 +439,21 @@ void Renderer::CreateParticle(int count)
 		index++;
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
+		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
 		index++;
 
 		// v3 (왼쪽 아래)
@@ -412,6 +482,21 @@ void Renderer::CreateParticle(int count)
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
 		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
+		index++;
 
 		// v4(오른쪽 위)
 		particleVertices[index] = particleSize / 2.f + randomValueX;
@@ -439,6 +524,21 @@ void Renderer::CreateParticle(int count)
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
 		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
+		index++;
 
 		// v5(오른쪽 아래)
 		particleVertices[index] = -particleSize / 2.f + randomValueX;
@@ -465,6 +565,21 @@ void Renderer::CreateParticle(int count)
 		index++;
 		// 폭 Amp
 		particleVertices[index] = randomAmp;
+		index++;
+		// rand value
+		particleVertices[index] = randValue;
+		index++;
+		// R
+		particleVertices[index] = randR;
+		index++;
+		// G
+		particleVertices[index] = randG;
+		index++;
+		// B
+		particleVertices[index] = randB;
+		index++;
+		// A
+		particleVertices[index] = randA;
 		index++;
 	}
 	glGenBuffers(1, &m_VBOManyParticle); // 파티클 버텍스를 담기위한 VBO 생성
@@ -589,39 +704,68 @@ void Renderer::Particle() // 파티클 렌더함수
 	glEnableVertexAttribArray(VBOLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBOManyParticle);
 	glVertexAttribPointer(VBOLocation, 3/*vertex당 값 3개씩들어있다*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10/*몇칸 단위로 읽을거냐(stride)*/, (GLvoid*)0/*어디서부터 읽을거냐*/); 
+		GL_FALSE, sizeof(float) * 15/*몇칸 단위로 읽을거냐(stride)*/, (GLvoid*)0/*어디서부터 읽을거냐*/); 
 	// velocity
 	GLint VBOVLocation = glGetAttribLocation(m_SolidRectShader, "a_Velocity");
 	glEnableVertexAttribArray(VBOVLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	//glBindBuffer(GL_ARRAY_BUFFER, m_VBOManyParticle); // 버퍼는 같은 버퍼 쓰기때문에 바인드 또해줄 필요는 X
 	glVertexAttribPointer(VBOVLocation, 3/*vertex당 값 3개씩들어있다*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10, (GLvoid*)(sizeof(float) * 3));
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 3));
 	// emit time
 	GLint VBOEmitLocation = glGetAttribLocation(m_SolidRectShader, "a_EmitTime");
 	glEnableVertexAttribArray(VBOEmitLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	glVertexAttribPointer(VBOEmitLocation, 1/*float 1개*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10, (GLvoid*)(sizeof(float) * 6/*6번째 float부터 emit time 등장*/));
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 6/*6번째 float부터 emit time 등장*/));
 	// Life time
 	GLint VBOLifeLocation = glGetAttribLocation(m_SolidRectShader, "a_LifeTime");
 	glEnableVertexAttribArray(VBOLifeLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	glVertexAttribPointer(VBOLifeLocation, 1/*float 1개*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10, (GLvoid*)(sizeof(float) * 7/*7번째 float부터 life time 등장*/));
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 7/*7번째 float부터 life time 등장*/));
 	// Period
 	GLint VBOPLocation = glGetAttribLocation(m_SolidRectShader, "a_P");
 	glEnableVertexAttribArray(VBOPLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	glVertexAttribPointer(VBOPLocation, 1/*float 1개*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10, (GLvoid*)(sizeof(float) * 8/*8번째 float부터 period 등장*/));
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 8/*8번째 float부터 period 등장*/));
 	// Amp
 	GLint VBOALocation = glGetAttribLocation(m_SolidRectShader, "a_A");
 	glEnableVertexAttribArray(VBOALocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
 	glVertexAttribPointer(VBOALocation, 1/*float 1개*/, GL_FLOAT,
-		GL_FALSE, sizeof(float) * 10, (GLvoid*)(sizeof(float) * 9/*9번째 float부터 amp 등장*/));
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 9/*9번째 float부터 amp 등장*/));
+
+	// rand value
+	GLint VBORLocation = glGetAttribLocation(m_SolidRectShader, "a_RandValue");
+	glEnableVertexAttribArray(VBORLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
+	glVertexAttribPointer(VBORLocation, 1/*float 1개*/, GL_FLOAT,
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 10/*10번째 float부터 등장*/));
+
+	// rand color
+	GLint VBOColorLocation = glGetAttribLocation(m_SolidRectShader, "a_Color");
+	glEnableVertexAttribArray(VBOColorLocation); // 해당되는 아이디가 사용 될건지 안될건지 알려줌
+	glVertexAttribPointer(VBOColorLocation, 4/*float 4개*/, GL_FLOAT,
+		GL_FALSE, sizeof(float) * 15, (GLvoid*)(sizeof(float) * 11/*11번째 float부터 amp 등장*/));
 
 
 
 	GLint UniformTime = glGetUniformLocation(shader, "u_Time");
 	glUniform1f(UniformTime, g_Time);
 
+	// uniform - 외력
+	GLint UniformExForce = glGetUniformLocation(shader, "u_ExForce"); 
+	glUniform3f(UniformExForce, sin(g_Time), cos(g_Time), 0); // 힘이 연속적으로 바뀌게
+
 	glDrawArrays(GL_TRIANGLES, 0/*시작지점:첨부터 다그릴거니까 0*/, m_VBOManyParticleCount);
 	g_Time += 0.016; // 매 프레임
+}
+
+void Renderer::FSSandbox()
+{
+	GLuint shader = m_FSSandboxShader;
+	glUseProgram(shader); // shader program 설정
+
+	GLuint attribPosLoc = glGetAttribLocation(shader, "a_Position");
+	glEnableVertexAttribArray(attribPosLoc);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFSSandBox);
+	glVertexAttribPointer(attribPosLoc, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)(0)/*처음부터 읽어옴*/);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6); // 0번째 버텍스 부터 6개
 }
