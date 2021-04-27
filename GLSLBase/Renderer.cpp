@@ -757,15 +757,64 @@ void Renderer::Particle() // 파티클 렌더함수
 	g_Time += 0.016; // 매 프레임
 }
 
+// wave를 위한 points
+float g_points[] = {
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/,
+	(float)((float)rand() / (float)RAND_MAX - 0.5f), (float)((float)rand() / (float)RAND_MAX - 0.5f), 0.01/*반지름*/
+};
 void Renderer::FSSandbox()
 {
 	GLuint shader = m_FSSandboxShader;
 	glUseProgram(shader); // shader program 설정
+
+	// 블렌드: 전체적인 글로벌적인 state를 정의
+	glEnable(GL_BLEND); 
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	GLuint attribPosLoc = glGetAttribLocation(shader, "a_Position");
 	glEnableVertexAttribArray(attribPosLoc);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBOFSSandBox);
 	glVertexAttribPointer(attribPosLoc, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (GLvoid*)(0)/*처음부터 읽어옴*/);
 
+	// 특정 지점에 원그리기
+	GLuint uniformPointLoc = glGetUniformLocation(shader, "u_Point"); // 어트리뷰트 만들기 위해선 해줘야함
+	glUniform3f(uniformPointLoc, 0.5f, 0.5f, 0.1f/*뒷값은 반지름 사이즈로 활용*/); // 값을 집어넣기 위함
+
+	// 시간
+	GLuint uniformTimeLoc = glGetUniformLocation(shader, "u_Time"); // 어트리뷰트 만들기 위해선 해줘야함
+	glUniform1f(uniformTimeLoc, g_Time); // 시간은 정확하진 않지만 위에 선언했던 g_Time 사용
+
+
+
+	// 특정 지점들에 원들 그리기
+	// 10개의 포인트 -> 시험문제: 갈수록 옅어지는 그라데이션 원 만드려면 반지름 0.01에서 0.1정도로 충분히 키워야함
+	float points[] = { 
+		-0.5, -0.5, 0.01/*반지름*/, -0.4, -0.4, 0.01, -0.3,-0.3,0.01, -0.2,-0.2,0.01, -0.1,-0.1,0.01,
+	0.5, 0.5, 0.01/*반지름*/, 0.4, 0.4, 0.01, 0.3,0.3,0.01, 0.2,0.2,0.01, 0.1,0.1,0.01 
+	};
+
+	for (int i = 0; i < 30; i += 3)
+	{
+		points[i] = (float)((float)rand() / (float)RAND_MAX - 0.5f);
+	}
+	for (int i = 1; i < 30; i += 3)
+	{
+		points[i] = (float)((float)rand() / (float)RAND_MAX - 0.5f);
+	}
+	// 얘를 유니폼으로 넘겨줘야함
+	GLuint uniformPointsLoc = glGetUniformLocation(shader, "u_Points"); // 어트리뷰트 만들기 위해선 해줘야함
+	glUniform3fv(uniformPointsLoc, 10/*개수*/,g_points/*포인터*/); // 값을 집어넣기 위함
+
 	glDrawArrays(GL_TRIANGLES, 0, 6); // 0번째 버텍스 부터 6개
+
+	glDisable(GL_BLEND); // 다른곳에서 블렌드를 켜지 않아야 할 경우를 대비해서 코드 끝에 disable
+	g_Time += 0.016; // 매 프레임
 }
